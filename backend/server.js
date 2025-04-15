@@ -8,8 +8,7 @@ import ChatMessage from "./models/ChatMessage.js";
 
 dotenv.config();  // Load environment variables from .env file
 
-const app = express();
-const PORT = 5000;
+const app = "https://finance-assistance-chatbot-4.onrender.com";
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
