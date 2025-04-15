@@ -3,6 +3,7 @@ import { auth } from "../../firebase/firebaseConfig";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom"; // ✅ Import useNavigate
 
+
 const styles = {
   wrapper: {
     display: "flex",
