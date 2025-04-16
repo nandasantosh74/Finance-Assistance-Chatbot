@@ -1,13 +1,13 @@
-const fs = require("fs");
-const path = require("path");
-const csv = require("csv-parser");
+import { createReadStream } from "fs";
+import { resolve as _resolve } from "path";
+import csv from "csv-parser";
 
 function getCsvAnswer(question) {
   return new Promise((resolve) => {
-    const csvFilePath = path.resolve(__dirname, "data", "chatbot.csv"); // ✅ RELATIVE path works on Render
+    const csvFilePath = _resolve(__dirname, "data", "chatbot.csv"); // ✅ RELATIVE path works on Render
     console.log("🟡 [CSV] Searching for:", question);
     
-    const stream = fs.createReadStream(csvFilePath).pipe(csv());
+    const stream = createReadStream(csvFilePath).pipe(csv());
 
     let found = false;
 
@@ -34,4 +34,4 @@ function getCsvAnswer(question) {
   });
 }
 
-module.exports = { getCsvAnswer };
+export default { getCsvAnswer };
