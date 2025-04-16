@@ -1,11 +1,16 @@
 import { createReadStream } from "fs";
-import { resolve as _resolve } from "path";
+import { resolve as _resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import csv from "csv-parser";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export function getCsvAnswer(question) {
   return new Promise((resolve) => {
     const csvFilePath = _resolve(__dirname, "../data/chatbot.csv");
     console.log("🟡 [CSV] Searching for:", question);
+    console.log("📁 Resolved CSV path:", csvFilePath);
 
     const stream = createReadStream(csvFilePath).pipe(csv());
 
