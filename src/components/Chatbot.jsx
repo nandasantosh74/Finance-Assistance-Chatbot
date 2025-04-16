@@ -27,13 +27,13 @@ export default function ChatBox() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/query?question=" + encodeURIComponent(input));
+      const response = await fetch("https://finance-assistance-chatbot.onrender.com/query?question=" + encodeURIComponent(input));
       const data = await response.json();
       
       setMessages((prev) => [...prev, { text: data.answer, sender: "bot" }]);
 
       // ✅ Store chat in database
-      await fetch("http://localhost:5000/saveChat", {
+      await fetch("https://finance-assistance-chatbot.onrender.com/saveChat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user: auth.currentUser.email, message: newMessage, response: data.answer }),

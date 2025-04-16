@@ -1,22 +1,37 @@
-import fs from "fs";
-import csvParser from "csv-parser";
-import path from "path";
+const fs = require("fs");
+const path = require("path");
+const csv = require("csv-parser");
 
-// Remove this line ❌
-// import { getCsvAnswer } from "./utils/csvHelper.js";
+function getCsvAnswer(question) {
+  return new Promise((resolve) => {
+    const csvFilePath = path.resolve(__dirname, "data", "chatbot.csv"); // ✅ RELATIVE path works on Render
+    console.log("🟡 [CSV] Searching for:", question);
+    
+    const stream = fs.createReadStream(csvFilePath).pipe(csv());
 
-export const getCsvAnswer = async (question) => {
-  return new Promise((resolve, reject) => {
-    const results = [];
-    const csvFilePath = path.join("C:", "Users", "nanda", "fac", "backend", "data", "chatbot.csv");
+    let found = false;
 
-    fs.createReadStream(csvFilePath)
-      .pipe(csvParser())
-      .on("data", (row) => results.push(row))
-      .on("end", () => {
-        const match = results.find((r) => r.query.toLowerCase() === question.toLowerCase());
-        resolve(match ? match.response : null);
-      })
-      .on("error", (err) => reject(err));
+    stream.on("data", (row) => {
+      console.log("📄 CSV Row:", row);
+      if (row.Question?.trim().toLowerCase() === question.trim().toLowerCase()) {
+        found = true;
+        resolve(row.Answer || "No answer found in CSV.");
+        stream.destroy(); // ✅ Stop reading once match is found
+      }
+    });
+
+    stream.on("end", () => {
+      if (!found) {
+        console.log("🔴 [CSV] No match found.");
+        resolve(null); // Let llamaHelper handle it if no match
+      }
+    });
+
+    stream.on("error", (err) => {
+      console.error("❌ Error reading CSV:", err);
+      resolve(null);
+    });
   });
-};
+}
+
+module.exports = { getCsvAnswer };
