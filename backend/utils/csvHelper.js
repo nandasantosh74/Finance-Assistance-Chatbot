@@ -4,7 +4,7 @@ import csv from "csv-parser";
 
 export function getCsvAnswer(question) {
   return new Promise((resolve) => {
-    const csvFilePath = _resolve(__dirname, "data", "chatbot.csv");
+    const csvFilePath = _resolve(__dirname, "../data/chatbot.csv");
     console.log("🟡 [CSV] Searching for:", question);
 
     const stream = createReadStream(csvFilePath).pipe(csv());
