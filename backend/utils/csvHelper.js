@@ -2,11 +2,11 @@ import { createReadStream } from "fs";
 import { resolve as _resolve } from "path";
 import csv from "csv-parser";
 
-function getCsvAnswer(question) {
+export function getCsvAnswer(question) {
   return new Promise((resolve) => {
-    const csvFilePath = _resolve(__dirname, "data", "chatbot.csv"); // ✅ RELATIVE path works on Render
+    const csvFilePath = _resolve(__dirname, "data", "chatbot.csv");
     console.log("🟡 [CSV] Searching for:", question);
-    
+
     const stream = createReadStream(csvFilePath).pipe(csv());
 
     let found = false;
@@ -33,5 +33,3 @@ function getCsvAnswer(question) {
     });
   });
 }
-
-export default { getCsvAnswer };
