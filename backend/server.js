@@ -10,6 +10,25 @@ dotenv.config();  // Load environment variables from .env file
 
 const app = express();
 const PORT = 5000;
+const allowedOrigins = [
+  "http://localhost:5000", // Local React app
+  "https://www.finbot.solutions"
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g., Postman) or from allowed origins
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true // If using cookies/auth headers
+  })
+);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
