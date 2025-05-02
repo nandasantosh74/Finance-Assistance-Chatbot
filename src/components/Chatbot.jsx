@@ -14,7 +14,7 @@ export default function ChatBox() {
   const chatBodyRef = useRef(null);
 
   // Backend URL from environment variable
-  const BACKEND_URL = "http://localhost:5000";
+  const BACKEND_URL = "https://finance-assistance-chatbot.onrender.com";
 
   // Scroll to latest message
   useEffect(() => {
