@@ -9,7 +9,6 @@ import ChatMessage from "./models/ChatMessage.js";
 dotenv.config();  // Load environment variables from .env file
 
 const app = express();
-console.log(typeof express);
 const PORT = 5000;
 
 // MongoDB connection
@@ -84,6 +83,37 @@ app.get("/chatHistory", async (req, res) => {
   } catch (error) {
     console.error("Error fetching chat history:", error);
     res.status(500).json({ error: "Failed to fetch chat history" });
+  }
+});
+
+app.post("/saveChat", async (req, res) => {
+
+  const { user, message, response } = req.body;
+  console.log("Received /saveChat payload:", req.body);
+
+  if (!user || !message || !message.text || !message.sender || !response) {
+    return res.status(400).json({ error: "user, message.text, message.sender, and response are required" });
+  }
+
+  try {
+    const userMessage = new ChatMessage({
+      user: user,
+      message: message.text,
+      sender: message.sender,
+    });
+    await userMessage.save();
+
+    const botMessage = new ChatMessage({
+      user: user,
+      message: response,
+      sender: "bot",
+    });
+    await botMessage.save();
+
+    res.status(200).json({ message: "Chat messages saved successfully" });
+  } catch (error) {
+    console.error("Error saving chat messages:", error);
+    res.status(500).json({ error: "Failed to save chat messages" });
   }
 });
 

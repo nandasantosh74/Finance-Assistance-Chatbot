@@ -13,6 +13,10 @@ export default function ChatBox() {
   const navigate = useNavigate();
   const chatBodyRef = useRef(null);
 
+  // Backend URL from environment variable
+  const BACKEND_URL = "http://localhost:5000";
+
+  // Scroll to latest message
   useEffect(() => {
     chatBodyRef.current?.scrollTo({ top: chatBodyRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
@@ -21,37 +25,42 @@ export default function ChatBox() {
     if (!input.trim()) return;
 
     const newMessage = { text: input, sender: "user" };
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages([...messages, newMessage]);
     setInput("");
     setLoading(true);
 
     try {
-      const response = await fetch(`https://finance-assistance-chatbot.onrender.com/query?question=${encodeURIComponent(input)}`);
-      if (!response.ok) throw new Error("Query endpoint failed");
+      // Call /query endpoint
+      const queryResponse = await fetch(`${BACKEND_URL}/query?question=${encodeURIComponent(input)}`);
+      if (!queryResponse.ok) {
+        throw new Error(`Query failed: ${queryResponse.statusText}`);
+      }
+      const data = await queryResponse.json();
 
-      const data = await response.json();
-      const botReply = { text: data.answer || "No response from bot.", sender: "bot" };
+      setMessages((prev) => [...prev, { text: data.answer, sender: "bot" }]);
 
-      setMessages((prev) => [...prev, botReply]);
+      // Store chat in database
+      const savePayload = { user: auth.currentUser.email, message: newMessage, response: data.answer };
+      console.log("Sending /saveChat payload:", savePayload);
 
-      await fetch("https://finance-assistance-chatbot.onrender.com/saveChat", {
+      const saveResponse = await fetch(`${BACKEND_URL}/saveChat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user: auth.currentUser?.email || "anonymous",
-          message: newMessage,
-          response: data.answer,
-        }),
+        body: JSON.stringify(savePayload),
       });
 
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        throw new Error(`Save chat failed: ${errorData.error}`);
+      }
     } catch (error) {
-      console.error("SendMessage Error:", error);
-      setMessages((prev) => [...prev, { text: "Error fetching response from server.", sender: "bot" }]);
-    } finally {
-      setLoading(false);
+      console.error("Error in sendMessage:", error);
+      setMessages((prev) => [...prev, { text: "Error fetching response. Please try again.", sender: "bot" }]);
     }
+    setLoading(false);
   };
 
+  // Handle Enter Key Press
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -59,6 +68,7 @@ export default function ChatBox() {
     }
   };
 
+  // Sign-Out Function
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -71,12 +81,9 @@ export default function ChatBox() {
   return (
     <div className="chatbox-container">
       <div className="chat-header">
-        {/* ✅ Finbot Logo */}
-        <img src="/assets/Finbot.png" alt="Finbot Logo" className="logo" style={{ height: "40px", marginRight: "10px" }} />
         <span>Finance Assistant</span>
         <FiLogOut onClick={handleLogout} className="logout-icon" size={20} />
       </div>
-
       <div className="chat-body" ref={chatBodyRef}>
         {messages.map((msg, index) => (
           <div key={index} className={`message ${msg.sender === "user" ? "user-message" : "bot-message"}`}>
@@ -85,7 +92,6 @@ export default function ChatBox() {
         ))}
         {loading && <AiOutlineLoading3Quarters className="loading-icon animate-spin" />}
       </div>
-
       <div className="chat-input">
         <input
           type="text"
