@@ -6,43 +6,42 @@ import { getCsvAnswer } from "./utils/csvHelper.js";
 import { getLlamaResponse } from "./utils/llamaHelper.js";
 import ChatMessage from "./models/ChatMessage.js";
 
-dotenv.config();  // Load environment variables from .env file
+dotenv.config();
 
 const app = express();
 const PORT = 5000;
+
 const allowedOrigins = [
-  "http://localhost:5000", // Local React app
-  "https://www.finbot.solutions"
+  "http://localhost:5173", 
+  "https://www.finbot.solutions", 
+  "https://finance-assistance-chatbot.onrender.com",
 ];
 
+// Enable CORS globally
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g., Postman) or from allowed origins
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST"],
-    credentials: true // If using cookies/auth headers
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-  // No need to specify useNewUrlParser and useUnifiedTopology options anymore.
-})
-  .then(() => {
-    console.log("Connected to MongoDB");
-  })
-  .catch((err) => {
-    console.error("MongoDB connection error:", err);
-  });
+// Handle OPTIONS requests explicitly (Preflight Request Handling)
+app.options("*", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.sendStatus(200);
+});
 
-app.use(cors());
 app.use(express.json());
+
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.error("MongoDB connection error:", err));
 
 // Default Route
 app.get("/", (req, res) => {
@@ -53,51 +52,33 @@ app.get("/", (req, res) => {
 app.get("/query", async (req, res) => {
   const { question } = req.query;
 
-  if (!question) {
-    return res.status(400).json({ error: "Question is required" });
-  }
+  if (!question) return res.status(400).json({ error: "Question is required" });
 
   try {
     const csvAnswer = await getCsvAnswer(question);
 
-    // Save user question to MongoDB
-    const chatMessage = new ChatMessage({
-      user: "User",  // Modify based on your app's user system
-      message: question,
-      sender: "user",
-    });
+    const chatMessage = new ChatMessage({ user: "User", message: question, sender: "user" });
+    await chatMessage.save();
 
-    await chatMessage.save();  // Save the user message
-
-    if (csvAnswer) {
-      return res.json({ answer: csvAnswer });
-    }
+    if (csvAnswer) return res.json({ answer: csvAnswer });
 
     const aiResponse = await getLlamaResponse(question);
 
-    // Save AI response to MongoDB
-    const aiMessage = new ChatMessage({
-      user: "Bot",  // The response is from the bot
-      message: aiResponse,
-      sender: "bot",
-    });
-
-    await aiMessage.save();  // Save the bot's response
+    const aiMessage = new ChatMessage({ user: "Bot", message: aiResponse, sender: "bot" });
+    await aiMessage.save();
 
     return res.json({ answer: aiResponse });
 
   } catch (error) {
-    console.error("Error processing query:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error processing query:", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
 // API Route to fetch chat history (last 10 messages)
 app.get("/chatHistory", async (req, res) => {
   try {
-    const chatHistory = await ChatMessage.find()
-      .sort({ timestamp: -1 })
-      .limit(10); // Fetch latest 10 messages
+    const chatHistory = await ChatMessage.find().sort({ timestamp: -1 }).limit(10);
     res.status(200).json(chatHistory);
   } catch (error) {
     console.error("Error fetching chat history:", error);
@@ -105,8 +86,8 @@ app.get("/chatHistory", async (req, res) => {
   }
 });
 
+// API Route to save chat messages
 app.post("/saveChat", async (req, res) => {
-
   const { user, message, response } = req.body;
   console.log("Received /saveChat payload:", req.body);
 
@@ -115,19 +96,8 @@ app.post("/saveChat", async (req, res) => {
   }
 
   try {
-    const userMessage = new ChatMessage({
-      user: user,
-      message: message.text,
-      sender: message.sender,
-    });
-    await userMessage.save();
-
-    const botMessage = new ChatMessage({
-      user: user,
-      message: response,
-      sender: "bot",
-    });
-    await botMessage.save();
+    await ChatMessage.create({ user, message: message.text, sender: message.sender });
+    await ChatMessage.create({ user, message: response, sender: "bot" });
 
     res.status(200).json({ message: "Chat messages saved successfully" });
   } catch (error) {
@@ -136,7 +106,6 @@ app.post("/saveChat", async (req, res) => {
   }
 });
 
-// Start Server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
