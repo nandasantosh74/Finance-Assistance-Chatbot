@@ -8,7 +8,7 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-image: url('https://wallpaperboat.com/wp-content/uploads/2021/04/15/75170/finance-02.jpg'); /* Replace with your image URL */
+    background-image: url('./assets/102269-stock-market-wallpaper.png'); /* Replace with your image URL */
     background-size: cover; /* Makes the image cover the entire container */
     background-position: center; /* Centers the background image */
     background-repeat: no-repeat; /* Ensures the image doesn't repeat */
